@@ -13,18 +13,23 @@ db = None
 
 def get_database():
     global client, db
-    if MONGODB_URI:
-        try:
-            if client is None:
-                client = MongoClient(MONGODB_URI)
-                db = client[DB_NAME]
-                # Test connection
-                client.admin.command('ping')
-                print("Connected to MongoDB Atlas successfully!")
-            return db
-        except Exception as e:
-            print(f"Failed to connect to MongoDB: {e}")
-            return None
-    else:
-        print("MONGODB_URI not found in environment variables. Database operations will be skipped.")
+    uri = os.getenv("MONGODB_URI")
+    
+    if not uri:
+        print("MONGODB_URI not found in environment variables.")
+        return None
+        
+    try:
+        if client is None:
+            client = MongoClient(uri, serverSelectionTimeoutMS=5000)
+            db = client[DB_NAME]
+            # Test connection
+            client.admin.command('ping')
+            print("Connected to MongoDB Atlas successfully!")
+        return db
+    except Exception as e:
+        print(f"Failed to connect to MongoDB: {e}")
+        # Reset client so it tries again next time
+        client = None
+        db = None
         return None
