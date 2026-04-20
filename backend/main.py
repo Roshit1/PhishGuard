@@ -55,7 +55,7 @@ def read_root():
     return {"message": "Welcome to PhishGuard API. Use POST /api/scan, /api/scan-email, or /api/scan-live."}
 
 @app.post("/api/scan")
-def scan_url(request: ScanRequest):
+def scan_url(request: ScanRequest, user: dict = Depends(auth.get_optional_user)):
     url = request.url
     
     # 1. Predict using ML model
@@ -73,7 +73,8 @@ def scan_url(request: ScanRequest):
                 "status": prediction_result["status"],
                 "risk_score": prediction_result["risk_score"],
                 "features": prediction_result["features"],
-                "timestamp": datetime.utcnow()
+                "timestamp": datetime.utcnow(),
+                "username": user["username"] if user else None
             }
             db.url_logs.insert_one(log_entry)
         except Exception as e:
@@ -82,7 +83,7 @@ def scan_url(request: ScanRequest):
     return prediction_result
 
 @app.post("/api/scan-email")
-def scan_email(request: ScanEmailRequest):
+def scan_email(request: ScanEmailRequest, user: dict = Depends(auth.get_optional_user)):
     content = request.content
     
     # 1. Predict using ML model (heuristic based currently)
@@ -97,7 +98,8 @@ def scan_email(request: ScanEmailRequest):
                 "type": "email",
                 "status": prediction_result["status"],
                 "risk_score": prediction_result["risk_score"],
-                "timestamp": datetime.utcnow()
+                "timestamp": datetime.utcnow(),
+                "username": user["username"] if user else None
             }
             db.url_logs.insert_one(log_entry)
         except Exception as e:
@@ -106,7 +108,7 @@ def scan_email(request: ScanEmailRequest):
     return prediction_result
 
 @app.post("/api/scan-live")
-async def scan_live(request: ScanRequest):
+async def scan_live(request: ScanRequest, user: dict = Depends(auth.get_optional_user)):
     url = request.url
     
     # 1. Predict using Live analysis
@@ -121,7 +123,8 @@ async def scan_live(request: ScanRequest):
                 "type": "live",
                 "status": prediction_result["status"],
                 "risk_score": prediction_result["risk_score"],
-                "timestamp": datetime.utcnow()
+                "timestamp": datetime.utcnow(),
+                "username": user["username"] if user else None
             }
             db.url_logs.insert_one(log_entry)
         except Exception as e:
@@ -157,28 +160,29 @@ async def chat(request: ChatRequest):
         return {"response": "I'm sorry, I encountered an error while processing your request.", "error": str(e)}
 
 @app.get("/api/history")
-def get_history(limit: int = 10):
+def get_history(limit: int = 10, user: dict = Depends(auth.get_current_user)):
     db = get_database()
     if db is None:
         return {"error": "Database not configured."}
         
     try:
-        logs = list(db.url_logs.find({}, {"_id": 0}).sort("timestamp", -1).limit(limit))
+        logs = list(db.url_logs.find({"username": user["username"]}, {"_id": 0}).sort("timestamp", -1).limit(limit))
         return logs
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Database error: {e}")
 
 @app.get("/api/stats")
-def get_stats():
+def get_stats(user: dict = Depends(auth.get_current_user)):
     db = get_database()
     if db is None:
         return {"error": "Database not configured."}
         
     try:
-        total_scans = db.url_logs.count_documents({})
-        phishing_count = db.url_logs.count_documents({"status": "Phishing"})
-        suspicious_count = db.url_logs.count_documents({"status": "Suspicious"})
-        safe_count = db.url_logs.count_documents({"status": "Safe"})
+        query = {"username": user["username"]}
+        total_scans = db.url_logs.count_documents(query)
+        phishing_count = db.url_logs.count_documents({"username": user["username"], "status": "Phishing"})
+        suspicious_count = db.url_logs.count_documents({"username": user["username"], "status": "Suspicious"})
+        safe_count = db.url_logs.count_documents({"username": user["username"], "status": "Safe"})
         
         phishing_percentage = 0
         if total_scans > 0:

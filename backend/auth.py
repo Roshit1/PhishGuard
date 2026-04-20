@@ -3,8 +3,11 @@ import os
 import jwt
 from datetime import datetime, timedelta
 from fastapi import APIRouter, HTTPException, Depends
+from fastapi.security import OAuth2PasswordBearer
 from pydantic import BaseModel
 from database import get_database
+
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login", auto_error=False)
 
 SECRET_KEY = os.getenv("JWT_SECRET", "super-secret-key-12345")
 ALGORITHM = "HS256"
@@ -83,3 +86,20 @@ def login(user: UserLogin):
         "username": db_user["username"],
         "role": db_user["role"]
     }
+
+def get_optional_user(token: str = Depends(oauth2_scheme)):
+    if not token:
+        return None
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        username: str = payload.get("sub")
+        if username is None:
+            return None
+        return {"username": username, "role": payload.get("role")}
+    except jwt.PyJWTError:
+        return None
+
+def get_current_user(user: dict = Depends(get_optional_user)):
+    if user is None:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    return user

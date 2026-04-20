@@ -76,6 +76,14 @@ function AppContent() {
     setActivePage('scan');
   };
 
+  useEffect(() => {
+    if (user && user.access_token) {
+      axios.defaults.headers.common['Authorization'] = `Bearer ${user.access_token}`;
+    } else {
+      delete axios.defaults.headers.common['Authorization'];
+    }
+  }, [user]);
+
   // Store all scan results locally for analytics
   const [allScans, setAllScans] = useState(() => {
     try {
