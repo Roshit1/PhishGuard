@@ -1,0 +1,13 @@
+fastapi
+uvicorn
+scikit-learn
+pandas
+numpy
+pymongo[srv]
+python-dotenv
+pydantic
+joblib
+pyjwt
+httpx
+beautifulsoup4
+google-generativeai
