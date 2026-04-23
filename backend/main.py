@@ -170,8 +170,12 @@ async def chat(request: ChatRequest):
         
         if "403" in error_msg and "leaked" in error_msg.lower():
             friendly_response = "I'm sorry, but my Gemini API key has been reported as leaked and disabled by Google. Please update the GEMINI_API_KEY in the backend .env file with a fresh key from the Google AI Studio."
+        elif "429" in error_msg or "quota" in error_msg.lower():
+            friendly_response = "I'm sorry, I've reached my usage limit (Quota Exceeded). Please try again in a minute or check your Google AI Studio billing/limits."
+        elif "401" in error_msg or "API_KEY_INVALID" in error_msg:
+            friendly_response = "It looks like the Gemini API key is invalid. Please double-check the key in your .env file."
         else:
-            friendly_response = "I'm sorry, I encountered an error while processing your request. Please check the backend console for details."
+            friendly_response = f"I'm sorry, I encountered an error: {error_msg[:100]}..."
             
         return {"response": friendly_response, "error": error_msg}
 
