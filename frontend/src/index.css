@@ -345,6 +345,8 @@ ul,ol{list-style:none}
   margin-bottom: 20px;
   animation: slideInUp 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   border: 1px solid var(--border-medium);
+  background: var(--bg-secondary); /* More solid background */
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.4);
 }
 
 @keyframes slideInUp {
@@ -395,7 +397,7 @@ ul,ol{list-style:none}
   display: flex;
   flex-direction: column;
   gap: 16px;
-  background: rgba(0, 0, 0, 0.05);
+  background: var(--bg-primary); /* Solid dark background for message area */
 }
 
 .chat-bubble {
@@ -412,7 +414,8 @@ ul,ol{list-style:none}
   background: var(--bg-card-hover);
   color: var(--text-primary);
   border-bottom-left-radius: 4px;
-  border: 1px solid var(--border-subtle);
+  border: 1px solid var(--border-medium);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
 }
 
 .chat-bubble--user {
