@@ -1,4 +1,4 @@
-import { useState, useEffect, createContext, useContext } from 'react';
+import { useState, useEffect, createContext, useContext, useRef } from 'react';
 import axios from 'axios';
 import {
   Shield, ShieldAlert, ShieldCheck, Activity, Search,
@@ -1105,7 +1105,15 @@ function ChatAssistant() {
     { role: 'assistant', text: "Hello! I'm PhishGuard AI. How can I help you with your cybersecurity today?" }
   ]);
   const [loading, setLoading] = useState(false);
-  const chatEndRef = useState(null);
+  const chatEndRef = useRef(null);
+  
+  const scrollToBottom = () => {
+    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [chatHistory, loading]);
 
   const handleSendMessage = async (e) => {
     e.preventDefault();
@@ -1117,7 +1125,10 @@ function ChatAssistant() {
     setLoading(true);
 
     try {
-      const res = await axios.post(`${API_BASE_URL}/chat`, { message });
+      const res = await axios.post(`${API_BASE_URL}/chat`, { 
+        message: message,
+        history: chatHistory 
+      });
       setChatHistory(prev => [...prev, { role: 'assistant', text: res.data.response }]);
     } catch (err) {
       setChatHistory(prev => [...prev, { role: 'assistant', text: "Sorry, I'm having trouble connecting right now." }]);
@@ -1149,6 +1160,7 @@ function ChatAssistant() {
                 <Activity className="spinner" size={14} /> thinking...
               </div>
             )}
+            <div ref={chatEndRef} />
           </div>
 
           <form className="chat-window__input-area" onSubmit={handleSendMessage}>

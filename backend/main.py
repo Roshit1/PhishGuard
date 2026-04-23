@@ -16,7 +16,8 @@ load_dotenv()
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 if GEMINI_API_KEY:
     genai.configure(api_key=GEMINI_API_KEY)
-    model = genai.GenerativeModel('gemini-1.5-flash')
+    # Using gemini-flash-latest for best compatibility
+    model = genai.GenerativeModel('gemini-flash-latest')
 else:
     model = None
 
@@ -148,16 +149,31 @@ async def chat(request: ChatRequest):
         )
         
         # Prepare history for Gemini
-        chat_session = model.start_chat(history=[])
+        gemini_history = []
+        for msg in request.history:
+            # Gemini roles are 'user' and 'model'
+            role = "model" if msg.get("role") == "assistant" else "user"
+            gemini_history.append({"role": role, "parts": [msg.get("text", "")]})
         
-        # We can pass the history if needed, but for simplicity let's just send the message with context
-        full_prompt = f"{system_prompt}\n\nUser: {request.message}"
+        chat_session = model.start_chat(history=gemini_history)
         
-        response = chat_session.send_message(full_prompt)
+        # Use system prompt as context if history is empty
+        message_to_send = request.message
+        if not gemini_history:
+            message_to_send = f"{system_prompt}\n\nUser: {request.message}"
+        
+        response = chat_session.send_message(message_to_send)
         return {"response": response.text}
     except Exception as e:
-        print(f"Chat error: {e}")
-        return {"response": "I'm sorry, I encountered an error while processing your request.", "error": str(e)}
+        error_msg = str(e)
+        print(f"Chat error: {error_msg}")
+        
+        if "403" in error_msg and "leaked" in error_msg.lower():
+            friendly_response = "I'm sorry, but my Gemini API key has been reported as leaked and disabled by Google. Please update the GEMINI_API_KEY in the backend .env file with a fresh key from the Google AI Studio."
+        else:
+            friendly_response = "I'm sorry, I encountered an error while processing your request. Please check the backend console for details."
+            
+        return {"response": friendly_response, "error": error_msg}
 
 @app.get("/api/history")
 def get_history(limit: int = 10, user: dict = Depends(auth.get_current_user)):
