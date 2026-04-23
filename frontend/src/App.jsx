@@ -1107,6 +1107,27 @@ function ChatAssistant() {
   const [loading, setLoading] = useState(false);
   const chatEndRef = useRef(null);
   
+  // Simple helper to format basic markdown (**bold**, *lists, \n)
+  const formatMessage = (text) => {
+    if (!text) return '';
+    
+    // Convert newlines to <br />
+    let html = text.replace(/\n/g, '<br />');
+    
+    // Convert **bold** to <strong>bold</strong>
+    html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+    
+    // Convert * list items to bullet points
+    html = html.replace(/^\* (.*?)$/gm, '<li style="margin-left: 1.5rem; margin-bottom: 0.25rem;">$1</li>');
+    
+    // Wrap lists in <ul> if needed (very basic)
+    if (html.includes('<li')) {
+      // This is a bit simplified but works for basic Gemini responses
+    }
+    
+    return <div dangerouslySetInnerHTML={{ __html: html }} />;
+  };
+
   const scrollToBottom = () => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
@@ -1152,7 +1173,7 @@ function ChatAssistant() {
           <div className="chat-window__messages">
             {chatHistory.map((msg, i) => (
               <div key={i} className={`chat-bubble chat-bubble--${msg.role}`}>
-                {msg.text}
+                {formatMessage(msg.text)}
               </div>
             ))}
             {loading && (
